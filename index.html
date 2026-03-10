@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SinghScan – PDF Maker</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Mulish:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{
+  --primary:#1666f5;--accent:#ff6b00;
+  --bg:#f0f4ff;--surface:#fff;--text:#0d0d2b;--text2:#5a5a80;
+  --border:#dde3f5;--success:#00c48c;--danger:#ff3b30;
+  --r:16px;--sh:0 2px 16px rgba(22,102,245,0.10);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{width:100%;min-height:100%;background:var(--bg);font-family:'Mulish',sans-serif;color:var(--text);}
+
+header{background:var(--primary);padding:14px 18px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;box-shadow:0 2px 16px rgba(22,102,245,0.4);}
+.logo{display:flex;align-items:center;gap:9px;}
+.logo-icon{width:40px;height:40px;background:#fff;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:20px;}
+.logo-text{font-family:'Baloo 2',cursive;font-size:23px;font-weight:800;color:#fff;}
+.logo-text span{color:#ffd60a;}
+.hcount{background:rgba(255,255,255,0.2);color:#fff;font-size:13px;font-weight:700;padding:5px 13px;border-radius:20px;}
+
+main{padding:18px;max-width:540px;margin:0 auto;}
+
+/* ACTION BUTTONS — using <label> for file inputs so tap works natively */
+.actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:11px;margin-bottom:22px;}
+
+/* The actual file inputs — visually hidden but accessible */
+.file-inp{
+  position:absolute;
+  width:1px;height:1px;
+  opacity:0;overflow:hidden;
+  clip:rect(0,0,0,0);
+  white-space:nowrap;
+}
+
+/* Labels styled as buttons */
+.abtn{
+  display:flex;flex-direction:column;align-items:center;gap:7px;
+  background:var(--surface);border:2px solid var(--border);border-radius:var(--r);
+  padding:16px 8px 13px;cursor:pointer;box-shadow:var(--sh);
+  transition:transform .15s;user-select:none;
+  -webkit-user-select:none;
+}
+.abtn:active{transform:scale(0.93);}
+.abtn .ic{font-size:30px;line-height:1;}
+.abtn .lb{font-size:11px;font-weight:700;color:var(--text2);text-align:center;line-height:1.3;}
+label.abtn.blue{background:var(--primary);border-color:var(--primary);}
+label.abtn.blue .lb{color:rgba(255,255,255,0.9);}
+button.abtn.orange{background:var(--accent);border-color:var(--accent);border:none;font-family:inherit;}
+button.abtn.orange .lb{color:rgba(255,255,255,0.9);}
+button.abtn{border:2px solid var(--border);font-family:inherit;}
+
+/* Camera button (not a label) */
+
+.empty{background:var(--surface);border-radius:var(--r);padding:42px 20px;text-align:center;box-shadow:var(--sh);margin-bottom:20px;}
+.empty span{font-size:52px;display:block;margin-bottom:10px;}
+.empty h3{font-family:'Baloo 2',cursive;font-size:19px;font-weight:700;margin-bottom:5px;}
+.empty p{font-size:13px;color:var(--text2);}
+
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.sec-title{font-family:'Baloo 2',cursive;font-size:17px;font-weight:700;}
+.clr-btn{background:none;border:1.5px solid var(--danger);color:var(--danger);padding:3px 11px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Mulish',sans-serif;}
+
+.pages-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;}
+.pthumb{position:relative;background:var(--surface);border-radius:11px;overflow:hidden;box-shadow:var(--sh);aspect-ratio:3/4;}
+.pthumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.pnum{position:absolute;top:5px;left:5px;background:rgba(22,102,245,0.85);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:9px;}
+.pdel{position:absolute;top:4px;right:4px;background:rgba(255,59,48,0.88);color:#fff;border:none;border-radius:50%;width:24px;height:24px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+
+.opts{background:var(--surface);border-radius:var(--r);padding:18px;margin-bottom:18px;box-shadow:var(--sh);}
+.opts h3{font-family:'Baloo 2',cursive;font-size:16px;font-weight:700;margin-bottom:14px;}
+.opt-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.opt-row:last-child{margin-bottom:0;}
+.opt-lbl{font-size:13px;font-weight:600;}
+.opt-sel{padding:7px 11px;border:1.5px solid var(--border);border-radius:9px;font-size:13px;font-family:'Mulish',sans-serif;color:var(--text);outline:none;background:var(--bg);}
+.toggle{position:relative;width:44px;height:24px;flex-shrink:0;}
+.toggle input{opacity:0;width:0;height:0;position:absolute;}
+.tslider{position:absolute;inset:0;background:#d0d5e8;border-radius:24px;cursor:pointer;transition:.25s;}
+.tslider::before{content:'';position:absolute;width:18px;height:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.25s;box-shadow:0 1px 3px rgba(0,0,0,0.2);}
+.toggle input:checked+.tslider{background:var(--primary);}
+.toggle input:checked+.tslider::before{transform:translateX(20px);}
+.name-input{width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;font-family:'Mulish',sans-serif;color:var(--text);outline:none;margin-top:11px;background:var(--bg);}
+.name-input:focus{border-color:var(--primary);}
+
+.genbtn{width:100%;padding:16px;background:var(--primary);color:#fff;border:none;border-radius:var(--r);font-family:'Baloo 2',cursive;font-size:19px;font-weight:700;cursor:pointer;box-shadow:0 5px 20px rgba(22,102,245,0.35);transition:all .2s;display:flex;align-items:center;justify-content:center;gap:9px;margin-bottom:28px;}
+.genbtn:disabled{opacity:.45;cursor:not-allowed;}
+.genbtn:not(:disabled):active{transform:scale(0.97);}
+
+/* CAMERA / SCAN MODAL */
+.modal{display:none;position:fixed;inset:0;z-index:200;background:#000;flex-direction:column;}
+.modal.open{display:flex;}
+.modal video{flex:1;width:100%;object-fit:cover;min-height:0;}
+.modal-bar{padding:18px 20px 32px;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:space-between;gap:14px;flex-shrink:0;}
+.mclose{background:rgba(255,255,255,0.15);border:none;border-radius:50%;width:46px;height:46px;color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.mshutter{width:70px;height:70px;border-radius:50%;background:#fff;border:4px solid rgba(255,255,255,0.35);cursor:pointer;font-size:26px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 3px 18px rgba(0,0,0,0.4);}
+.mshutter:active{transform:scale(0.88);}
+.mflip{background:rgba(255,255,255,0.15);border:none;border-radius:50%;width:46px;height:46px;color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.modal-hint{color:rgba(255,255,255,0.6);font-size:12px;text-align:center;flex:1;}
+.sframe-wrap{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;}
+.sframe{width:74vw;height:74vw;max-width:310px;max-height:310px;border:2.5px solid rgba(255,255,255,0.65);border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,0.48);position:relative;overflow:hidden;}
+.sline{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,#1666f5,transparent);animation:sl 2s linear infinite;}
+@keyframes sl{0%{top:0}100%{top:100%}}
+
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--text);color:#fff;padding:11px 20px;border-radius:28px;font-size:14px;font-weight:600;box-shadow:0 5px 20px rgba(0,0,0,0.22);z-index:9999;transition:transform .3s cubic-bezier(.34,1.56,.64,1);white-space:nowrap;max-width:88vw;text-align:center;}
+.toast.show{transform:translateX(-50%) translateY(0);}
+.toast.ok{background:var(--success);}
+.toast.err{background:var(--danger);}
+
+.pbar{position:fixed;top:0;left:0;height:3px;background:var(--accent);z-index:999;transition:width .3s;width:0;}
+</style>
+</head>
+<body>
+<div class="pbar" id="pbar"></div>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">📄</div>
+    <div class="logo-text">Singh<span>Scan</span></div>
+  </div>
+  <div class="hcount" id="hcount">0 pages</div>
+</header>
+
+<!-- CAMERA MODAL -->
+<div class="modal" id="camModal">
+  <video id="camVid" autoplay playsinline muted></video>
+  <canvas id="camCanvas" style="display:none"></canvas>
+  <div class="modal-bar">
+    <button class="mclose" onclick="closeCamera()">✕</button>
+    <button class="mshutter" onclick="snapCamera()">📷</button>
+    <button class="mflip" onclick="flipCam()">🔄</button>
+  </div>
+</div>
+
+<!-- SCAN MODAL -->
+<div class="modal" id="scanModal">
+  <video id="scanVid" autoplay playsinline muted></video>
+  <canvas id="scanCanvas" style="display:none"></canvas>
+  <div class="sframe-wrap"><div class="sframe"><div class="sline"></div></div></div>
+  <div class="modal-bar">
+    <button class="mclose" onclick="closeScan()">✕</button>
+    <button class="mshutter" onclick="snapScan()">🔍</button>
+    <div class="modal-hint">Align doc in frame &amp; tap</div>
+  </div>
+</div>
+
+<main>
+  <div class="actions">
+
+    <!-- UPLOAD: label directly tied to input — most reliable on all mobile browsers -->
+    <label class="abtn blue" for="inp-upload">
+      <span class="ic">🖼️</span>
+      <span class="lb">Upload JPG / PNG</span>
+    </label>
+    <input
+      class="file-inp"
+      type="file"
+      id="inp-upload"
+      accept="image/*"
+      multiple
+    >
+
+    <!-- CAMERA button -->
+    <button class="abtn" onclick="openCamera()" type="button">
+      <span class="ic">📷</span>
+      <span class="lb">Click Photo</span>
+    </button>
+
+    <!-- SCAN: also label → input with camera capture fallback -->
+    <button class="abtn orange" onclick="openScan()" type="button">
+      <span class="ic">🔍</span>
+      <span class="lb">Scan Doc</span>
+    </button>
+
+  </div>
+
+  <div class="empty" id="emptyEl">
+    <span>📂</span>
+    <h3>No pages yet</h3>
+    <p>Upload images, take a photo, or scan a document to begin</p>
+  </div>
+
+  <div id="pagesSection" style="display:none">
+    <div class="sec-hdr">
+      <div class="sec-title">📄 Pages <span id="pcnt" style="color:var(--text2);font-size:14px;font-weight:600;"></span></div>
+      <button class="clr-btn" onclick="clearAll()">Clear All</button>
+    </div>
+    <div class="pages-grid" id="pagesGrid"></div>
+  </div>
+
+  <div class="opts">
+    <h3>⚙️ PDF Settings</h3>
+    <div class="opt-row">
+      <span class="opt-lbl">Page Size</span>
+      <select class="opt-sel" id="pgSize">
+        <option value="a4">A4</option>
+        <option value="letter">Letter</option>
+        <option value="legal">Legal</option>
+        <option value="fit">Fit Image</option>
+      </select>
+    </div>
+    <div class="opt-row">
+      <span class="opt-lbl">Orientation</span>
+      <select class="opt-sel" id="orient">
+        <option value="p">Portrait</option>
+        <option value="l">Landscape</option>
+      </select>
+    </div>
+    <div class="opt-row">
+      <span class="opt-lbl">Filter</span>
+      <select class="opt-sel" id="filt">
+        <option value="none">Original</option>
+        <option value="enhance">Enhanced</option>
+        <option value="bw">B&amp;W</option>
+      </select>
+    </div>
+    <div class="opt-row">
+      <span class="opt-lbl">Margins</span>
+      <label class="toggle"><input type="checkbox" id="margins" checked><span class="tslider"></span></label>
+    </div>
+    <div class="opt-row">
+      <span class="opt-lbl">Page Numbers</span>
+      <label class="toggle"><input type="checkbox" id="pgnums"><span class="tslider"></span></label>
+    </div>
+    <input class="name-input" id="pdfName" type="text" value="SinghScan_Document" placeholder="PDF file name">
+  </div>
+
+  <button class="genbtn" id="btnGen" disabled onclick="generatePDF()">⬇️ Generate PDF</button>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const { jsPDF } = window.jspdf;
+let pages = [];
+let camStream = null, scanStream = null, camFacing = 'environment';
+
+/* ── FILE UPLOAD via label ── */
+document.getElementById('inp-upload').addEventListener('change', function () {
+  readFiles(Array.from(this.files));
+  this.value = ''; // allow re-selecting same file
+});
+
+function readFiles(files, scanMode) {
+  if (!files.length) return;
+  let done = 0;
+  files.forEach(file => {
+    if (!file.type.startsWith('image/')) { done++; check(); return; }
+    const reader = new FileReader();
+    reader.onload = e => {
+      if (scanMode) {
+        applyBW(e.target.result, dataUrl => {
+          pages.push({ dataUrl });
+          done++; check();
+        });
+      } else {
+        pages.push({ dataUrl: e.target.result });
+        done++; check();
+      }
+    };
+    reader.onerror = () => { done++; check(); };
+    reader.readAsDataURL(file);
+  });
+  function check() {
+    if (done === files.length) {
+      updateUI();
+      toast('✅ ' + files.length + ' page' + (files.length > 1 ? 's' : '') + ' added!', 'ok');
+    }
+  }
+}
+
+/* ── CAMERA ── */
+async function openCamera() {
+  try {
+    camStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: camFacing }, audio: false
+    });
+    const vid = document.getElementById('camVid');
+    vid.srcObject = camStream;
+    await vid.play();
+    document.getElementById('camModal').classList.add('open');
+  } catch (e) {
+    // fallback: native camera capture input
+    nativeCapture(false);
+  }
+}
+function closeCamera() {
+  stopStream(camStream); camStream = null;
+  document.getElementById('camModal').classList.remove('open');
+}
+async function flipCam() {
+  camFacing = camFacing === 'environment' ? 'user' : 'environment';
+  closeCamera(); await openCamera();
+}
+function snapCamera() {
+  const vid = document.getElementById('camVid');
+  const c   = document.getElementById('camCanvas');
+  c.width = vid.videoWidth || 1280; c.height = vid.videoHeight || 720;
+  c.getContext('2d').drawImage(vid, 0, 0);
+  pages.push({ dataUrl: c.toDataURL('image/jpeg', 0.92) });
+  closeCamera(); updateUI(); toast('📷 Photo captured!', 'ok');
+}
+
+/* ── SCAN ── */
+async function openScan() {
+  try {
+    scanStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment' }, audio: false
+    });
+    const vid = document.getElementById('scanVid');
+    vid.srcObject = scanStream;
+    await vid.play();
+    document.getElementById('scanModal').classList.add('open');
+  } catch (e) {
+    nativeCapture(true);
+  }
+}
+function closeScan() {
+  stopStream(scanStream); scanStream = null;
+  document.getElementById('scanModal').classList.remove('open');
+}
+function snapScan() {
+  const vid = document.getElementById('scanVid');
+  const c   = document.getElementById('scanCanvas');
+  c.width = vid.videoWidth || 1280; c.height = vid.videoHeight || 720;
+  c.getContext('2d').drawImage(vid, 0, 0);
+  applyBW(c.toDataURL('image/jpeg', 0.92), dataUrl => {
+    pages.push({ dataUrl });
+    closeScan(); updateUI(); toast('🔍 Document scanned!', 'ok');
+  });
+}
+
+/* ── NATIVE CAMERA FALLBACK ── */
+function nativeCapture(scanMode) {
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = 'image/*'; inp.capture = 'environment';
+  inp.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;opacity:0;';
+  inp.addEventListener('change', () => {
+    readFiles(Array.from(inp.files), scanMode);
+    inp.remove();
+  });
+  document.body.appendChild(inp);
+  inp.click();
+}
+
+/* ── HELPERS ── */
+function stopStream(s) { if (s) s.getTracks().forEach(t => t.stop()); }
+
+function applyBW(src, cb) {
+  const img = new Image();
+  img.onload = () => {
+    const c = document.createElement('canvas');
+    c.width = img.naturalWidth; c.height = img.naturalHeight;
+    const ctx = c.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    const id = ctx.getImageData(0, 0, c.width, c.height), d = id.data;
+    for (let i = 0; i < d.length; i += 4) {
+      const g = d[i]*0.299 + d[i+1]*0.587 + d[i+2]*0.114;
+      const v = Math.min(255, Math.max(0, (g - 128) * 1.55 + 145));
+      d[i] = d[i+1] = d[i+2] = v;
+    }
+    ctx.putImageData(id, 0, 0);
+    cb(c.toDataURL('image/jpeg', 0.92));
+  };
+  img.src = src;
+}
+
+function clearAll() {
+  if (!confirm('Remove all pages?')) return;
+  pages = []; updateUI(); toast('All pages cleared');
+}
+
+function delPage(i) { pages.splice(i, 1); updateUI(); toast('Page removed'); }
+
+function updateUI() {
+  const n = pages.length;
+  document.getElementById('hcount').textContent = n + (n === 1 ? ' page' : ' pages');
+  document.getElementById('pcnt').textContent = '(' + n + ')';
+  document.getElementById('emptyEl').style.display      = n ? 'none'  : 'block';
+  document.getElementById('pagesSection').style.display = n ? 'block' : 'none';
+  document.getElementById('btnGen').disabled = !n;
+  document.getElementById('pagesGrid').innerHTML = pages.map((p, i) => `
+    <div class="pthumb">
+      <img src="${p.dataUrl}" alt="p${i+1}" loading="lazy">
+      <div class="pnum">P${i+1}</div>
+      <button class="pdel" onclick="delPage(${i})">✕</button>
+    </div>`).join('');
+}
+
+/* ── GENERATE PDF ── */
+async function generatePDF() {
+  if (!pages.length) return;
+  const btn = document.getElementById('btnGen');
+  btn.disabled = true; btn.textContent = '⏳ Generating…';
+  const bar = document.getElementById('pbar');
+  bar.style.width = '8%';
+
+  const pgSize = document.getElementById('pgSize').value;
+  const orient = document.getElementById('orient').value;
+  const filt   = document.getElementById('filt').value;
+  const marg   = document.getElementById('margins').checked;
+  const pgn    = document.getElementById('pgnums').checked;
+  let   name   = (document.getElementById('pdfName').value.trim() || 'SinghScan') + '.pdf';
+
+  try {
+    let doc;
+    for (let i = 0; i < pages.length; i++) {
+      bar.style.width = (8 + (i / pages.length) * 84) + '%';
+      const src = await filterImg(pages[i].dataUrl, filt);
+      const img = await loadImg(src);
+      const iW = img.naturalWidth, iH = img.naturalHeight;
+      const fmt = pgSize === 'fit' ? [iW * 25.4 / 96, iH * 25.4 / 96] : pgSize;
+
+      if (i === 0) doc = new jsPDF({ orientation: orient, unit: 'mm', format: fmt });
+      else doc.addPage(fmt, orient);
+
+      const W = doc.internal.pageSize.getWidth();
+      const H = doc.internal.pageSize.getHeight();
+      const p = marg ? 10 : 0;
+      const avW = W - p * 2, avH = H - p * 2 - (pgn ? 8 : 0);
+      const r = Math.min(avW / iW, avH / iH);
+      const dW = iW * r, dH = iH * r;
+      doc.addImage(src, 'JPEG', p + (avW - dW) / 2, p + (avH - dH) / 2, dW, dH, '', 'FAST');
+
+      if (pgn) {
+        doc.setFontSize(9); doc.setTextColor(150);
+        doc.text(`${i+1} / ${pages.length}`, W / 2, H - 4, { align: 'center' });
+      }
+    }
+    bar.style.width = '100%';
+    doc.save(name);
+    setTimeout(() => { bar.style.width = '0%'; }, 800);
+    toast('✅ ' + name + ' saved!', 'ok');
+  } catch (e) {
+    toast('❌ ' + e.message, 'err');
+    bar.style.width = '0%';
+  }
+
+  btn.disabled = false; btn.innerHTML = '⬇️ Generate PDF';
+}
+
+function filterImg(src, f) {
+  return new Promise(resolve => {
+    if (f === 'none') return resolve(src);
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = img.naturalWidth; c.height = img.naturalHeight;
+      const ctx = c.getContext('2d'); ctx.drawImage(img, 0, 0);
+      const id = ctx.getImageData(0, 0, c.width, c.height), d = id.data;
+      for (let i = 0; i < d.length; i += 4) {
+        if (f === 'bw') {
+          const g = d[i]*0.299 + d[i+1]*0.587 + d[i+2]*0.114;
+          d[i] = d[i+1] = d[i+2] = g;
+        } else {
+          d[i]=Math.min(255,d[i]*1.12); d[i+1]=Math.min(255,d[i+1]*1.12); d[i+2]=Math.min(255,d[i+2]*1.12);
+        }
+      }
+      ctx.putImageData(id, 0, 0);
+      resolve(c.toDataURL('image/jpeg', 0.92));
+    };
+    img.src = src;
+  });
+}
+
+function loadImg(src) {
+  return new Promise((res, rej) => {
+    const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src;
+  });
+}
+
+let _tt;
+function toast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show' + (type ? ' ' + type : '');
+  clearTimeout(_tt);
+  _tt = setTimeout(() => el.classList.remove('show'), 2600);
+}
+
+updateUI();
+</script>
+</body>
+</html>
